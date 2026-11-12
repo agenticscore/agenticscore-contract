@@ -1,13 +1,13 @@
-// SPDX-License-Identifier: MIT
-pragma solidity 0.8.28;
 // Sources flattened with hardhat v2.29.2 https://hardhat.org
 
+// SPDX-License-Identifier: MIT
 
 // File @openzeppelin/contracts/utils/Context.sol@v5.6.1
 
 // Original license: SPDX_License_Identifier: MIT
 // OpenZeppelin Contracts (last updated v5.0.1) (utils/Context.sol)
 
+pragma solidity ^0.8.20;
 
 /**
  * @dev Provides information about the current execution context, including the
@@ -33,12 +33,10 @@ abstract contract Context {
     }
 }
 
-
 // File @openzeppelin/contracts/access/Ownable.sol@v5.6.1
 
 // Original license: SPDX_License_Identifier: MIT
 // OpenZeppelin Contracts (last updated v5.0.0) (access/Ownable.sol)
-
 
 /**
  * @dev Contract module which provides a basic access control mechanism, where
@@ -134,12 +132,10 @@ abstract contract Ownable is Context {
     }
 }
 
-
 // File @openzeppelin/contracts/access/Ownable2Step.sol@v5.6.1
 
 // Original license: SPDX_License_Identifier: MIT
 // OpenZeppelin Contracts (last updated v5.1.0) (access/Ownable2Step.sol)
-
 
 /**
  * @dev Contract module which provides access control mechanism, where
@@ -202,12 +198,10 @@ abstract contract Ownable2Step is Ownable {
     }
 }
 
-
 // File @openzeppelin/contracts/interfaces/draft-IERC6093.sol@v5.6.1
 
 // Original license: SPDX_License_Identifier: MIT
 // OpenZeppelin Contracts (last updated v5.5.0) (interfaces/draft-IERC6093.sol)
-
 
 /**
  * @dev Standard ERC-20 Errors
@@ -367,12 +361,10 @@ interface IERC1155Errors {
     error ERC1155InvalidArrayLength(uint256 idsLength, uint256 valuesLength);
 }
 
-
 // File @openzeppelin/contracts/utils/introspection/IERC165.sol@v5.6.1
 
 // Original license: SPDX_License_Identifier: MIT
 // OpenZeppelin Contracts (last updated v5.4.0) (utils/introspection/IERC165.sol)
-
 
 /**
  * @dev Interface of the ERC-165 standard, as defined in the
@@ -395,12 +387,10 @@ interface IERC165 {
     function supportsInterface(bytes4 interfaceId) external view returns (bool);
 }
 
-
 // File @openzeppelin/contracts/token/ERC721/IERC721.sol@v5.6.1
 
 // Original license: SPDX_License_Identifier: MIT
 // OpenZeppelin Contracts (last updated v5.4.0) (token/ERC721/IERC721.sol)
-
 
 /**
  * @dev Required interface of an ERC-721 compliant contract.
@@ -531,12 +521,10 @@ interface IERC721 is IERC165 {
     function isApprovedForAll(address owner, address operator) external view returns (bool);
 }
 
-
 // File @openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol@v5.6.1
 
 // Original license: SPDX_License_Identifier: MIT
 // OpenZeppelin Contracts (last updated v5.4.0) (token/ERC721/extensions/IERC721Metadata.sol)
-
 
 /**
  * @title ERC-721 Non-Fungible Token Standard, optional metadata extension
@@ -559,12 +547,10 @@ interface IERC721Metadata is IERC721 {
     function tokenURI(uint256 tokenId) external view returns (string memory);
 }
 
-
 // File @openzeppelin/contracts/token/ERC721/IERC721Receiver.sol@v5.6.1
 
 // Original license: SPDX_License_Identifier: MIT
 // OpenZeppelin Contracts (last updated v5.4.0) (token/ERC721/IERC721Receiver.sol)
-
 
 /**
  * @title ERC-721 token receiver interface
@@ -590,13 +576,10 @@ interface IERC721Receiver {
     ) external returns (bytes4);
 }
 
-
 // File @openzeppelin/contracts/token/ERC721/utils/ERC721Utils.sol@v5.6.1
 
 // Original license: SPDX_License_Identifier: MIT
 // OpenZeppelin Contracts (last updated v5.5.0) (token/ERC721/utils/ERC721Utils.sol)
-
-
 
 /**
  * @dev Library that provides common ERC-721 utility functions.
@@ -641,12 +624,10 @@ library ERC721Utils {
     }
 }
 
-
 // File @openzeppelin/contracts/utils/introspection/ERC165.sol@v5.6.1
 
 // Original license: SPDX_License_Identifier: MIT
 // OpenZeppelin Contracts (last updated v5.4.0) (utils/introspection/ERC165.sol)
-
 
 /**
  * @dev Implementation of the {IERC165} interface.
@@ -667,13 +648,11 @@ abstract contract ERC165 is IERC165 {
     }
 }
 
-
 // File @openzeppelin/contracts/utils/math/SafeCast.sol@v5.6.1
 
 // Original license: SPDX_License_Identifier: MIT
 // OpenZeppelin Contracts (last updated v5.6.0) (utils/math/SafeCast.sol)
 // This file was procedurally generated from scripts/generate/templates/SafeCast.js.
-
 
 /**
  * @dev Wrappers over Solidity's uintXX/intXX/bool casting operators with added overflow
@@ -1832,12 +1811,10 @@ library SafeCast {
     }
 }
 
-
 // File @openzeppelin/contracts/utils/Panic.sol@v5.6.1
 
 // Original license: SPDX_License_Identifier: MIT
 // OpenZeppelin Contracts (last updated v5.1.0) (utils/Panic.sol)
-
 
 /**
  * @dev Helper library for emitting standardized panic codes.
@@ -1892,13 +1869,10 @@ library Panic {
     }
 }
 
-
 // File @openzeppelin/contracts/utils/math/Math.sol@v5.6.1
 
 // Original license: SPDX_License_Identifier: MIT
 // OpenZeppelin Contracts (last updated v5.6.0) (utils/math/Math.sol)
-
-
 
 /**
  * @dev Standard math utilities missing in the Solidity language.
@@ -2656,12 +2630,10 @@ library Math {
     }
 }
 
-
 // File @openzeppelin/contracts/utils/Bytes.sol@v5.6.1
 
 // Original license: SPDX_License_Identifier: MIT
 // OpenZeppelin Contracts (last updated v5.6.0) (utils/Bytes.sol)
-
 
 /**
  * @dev Bytes operations.
@@ -2989,12 +2961,10 @@ library Bytes {
     }
 }
 
-
 // File @openzeppelin/contracts/utils/math/SignedMath.sol@v5.6.1
 
 // Original license: SPDX_License_Identifier: MIT
 // OpenZeppelin Contracts (last updated v5.1.0) (utils/math/SignedMath.sol)
-
 
 /**
  * @dev Standard signed math utilities missing in the Solidity language.
@@ -3058,15 +3028,10 @@ library SignedMath {
     }
 }
 
-
 // File @openzeppelin/contracts/utils/Strings.sol@v5.6.1
 
 // Original license: SPDX_License_Identifier: MIT
 // OpenZeppelin Contracts (last updated v5.6.0) (utils/Strings.sol)
-
-
-
-
 
 /**
  * @dev String operations.
@@ -3591,18 +3556,10 @@ library Strings {
     }
 }
 
-
 // File @openzeppelin/contracts/token/ERC721/ERC721.sol@v5.6.1
 
 // Original license: SPDX_License_Identifier: MIT
 // OpenZeppelin Contracts (last updated v5.6.0) (token/ERC721/ERC721.sol)
-
-
-
-
-
-
-
 
 /**
  * @dev Implementation of https://eips.ethereum.org/EIPS/eip-721[ERC-721] Non-Fungible Token Standard, including
@@ -4025,12 +3982,10 @@ abstract contract ERC721 is Context, ERC165, IERC721, IERC721Metadata, IERC721Er
     }
 }
 
-
 // File @openzeppelin/contracts/interfaces/IERC5267.sol@v5.6.1
 
 // Original license: SPDX_License_Identifier: MIT
 // OpenZeppelin Contracts (last updated v5.4.0) (interfaces/IERC5267.sol)
-
 
 interface IERC5267 {
     /**
@@ -4056,12 +4011,10 @@ interface IERC5267 {
         );
 }
 
-
 // File @openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol@v5.6.1
 
 // Original license: SPDX_License_Identifier: MIT
 // OpenZeppelin Contracts (last updated v5.6.0) (utils/cryptography/MessageHashUtils.sol)
-
 
 /**
  * @dev Signature message hash utilities for producing digests to be consumed by {ECDSA} recovery or signing.
@@ -4285,13 +4238,11 @@ library MessageHashUtils {
     }
 }
 
-
 // File @openzeppelin/contracts/utils/StorageSlot.sol@v5.6.1
 
 // Original license: SPDX_License_Identifier: MIT
 // OpenZeppelin Contracts (last updated v5.1.0) (utils/StorageSlot.sol)
 // This file was procedurally generated from scripts/generate/templates/StorageSlot.js.
-
 
 /**
  * @dev Library for reading and writing primitive types to specific storage slots.
@@ -4431,12 +4382,10 @@ library StorageSlot {
     }
 }
 
-
 // File @openzeppelin/contracts/utils/ShortStrings.sol@v5.6.1
 
 // Original license: SPDX_License_Identifier: MIT
 // OpenZeppelin Contracts (last updated v5.5.0) (utils/ShortStrings.sol)
-
 
 // | string  | 0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA   |
 // | length  | 0x                                                              BB |
@@ -4554,14 +4503,10 @@ library ShortStrings {
     }
 }
 
-
 // File @openzeppelin/contracts/utils/cryptography/EIP712.sol@v5.6.1
 
 // Original license: SPDX_License_Identifier: MIT
 // OpenZeppelin Contracts (last updated v5.5.0) (utils/cryptography/EIP712.sol)
-
-
-
 
 /**
  * @dev https://eips.ethereum.org/EIPS/eip-712[EIP-712] is a standard for hashing and signing of typed structured data.
@@ -4715,12 +4660,10 @@ abstract contract EIP712 is IERC5267 {
     }
 }
 
-
 // File @openzeppelin/contracts/utils/cryptography/ECDSA.sol@v5.6.1
 
 // Original license: SPDX_License_Identifier: MIT
 // OpenZeppelin Contracts (last updated v5.6.0) (utils/cryptography/ECDSA.sol)
-
 
 /**
  * @dev Elliptic Curve Digital Signature Algorithm (ECDSA) operations.
@@ -5002,13 +4945,9 @@ library ECDSA {
     }
 }
 
-
 // File contracts/AgenticScore.sol
 
 // Original license: SPDX_License_Identifier: MIT
-
-
-
 
 /// @dev ERC-5192 "Minimal Soulbound NFTs". Marketplaces and indexers read this to know a token cannot move.
 interface IERC5192 {
@@ -5019,32 +4958,41 @@ interface IERC5192 {
 }
 
 /// @title AgenticScore
-/// @notice One soulbound NFT per wallet, 3,000 in total, free to mint (gas only).
+/// @notice One soulbound NFT per wallet, 3,000 in total, 0.00008 BNB to mint.
 ///
 /// How a mint works
 /// ----------------
 /// The backend checks the allowlist, computes the wallet's starting score, and signs an EIP-712
 /// voucher for exactly that wallet. The wallet (or the agent acting for it) submits the voucher
-/// to `mint`. The contract checks the signature, mints, and emits the score in `Minted`, so the
-/// agent can read it straight from the transaction receipt.
+/// to `mint` together with the mint fee. The contract checks the fee and the signature, mints,
+/// and emits the score in `Minted`, so the agent can read it straight from the transaction receipt.
 ///
 /// What lives on-chain and what does not
 /// -------------------------------------
 /// - On-chain: who minted, token IDs, the supply cap, the one-per-wallet rule, the starting score
-///   (as an event, not in storage, to keep the mint cheap).
+///   (as an event, not in storage, to keep the mint cheap), the mint fee, and the fees collected,
+///   which the owner withdraws.
 /// - Off-chain: the allowlist, the score and its growth during a batch, the leaderboard, and the
-///   USDT rewards, which are paid from a separate wallet. Nothing here moves or holds reward funds.
+///   USDT rewards, which are paid from a separate wallet. No reward funds pass through here.
 ///
 /// The contract trusts the backend signer for the allowlist and the score. It cannot verify either.
 contract AgenticScore is ERC721, Ownable2Step, EIP712, IERC5192 {
     /// @notice Hard cap on the number of NFTs that will ever exist.
     uint256 public constant MAX_SUPPLY = 3000;
 
+    /// @notice Ceiling the owner can raise the mint fee to. A leaked owner key cannot set a fee
+    ///         higher than this, so the worst it can do to minters is bounded.
+    uint256 public constant MAX_MINT_FEE = 0.005 ether;
+
     /// @dev EIP-712 type of the voucher the backend signs.
     bytes32 private constant MINT_TYPEHASH = keccak256("Mint(address wallet,uint256 score,uint256 deadline)");
 
     /// @notice Address whose signatures the contract accepts as proof of eligibility.
     address public signer;
+
+    /// @notice Fee charged for one mint, in wei. Fixed at deploy, changeable by the owner up to
+    ///         MAX_MINT_FEE. 0.00008 BNB to start.
+    uint256 public mintFee = 0.00008 ether;
 
     /// @notice Minting is closed at deploy and opened by the owner.
     bool public mintOpen;
@@ -5061,6 +5009,8 @@ contract AgenticScore is ERC721, Ownable2Step, EIP712, IERC5192 {
     event MintOpenUpdated(bool open);
     event MetadataURIUpdated(string uri);
     event MetadataFrozen();
+    event MintFeeUpdated(uint256 previousFee, uint256 newFee);
+    event Withdrawn(address indexed to, uint256 amount);
 
     error Soulbound();
     error MintClosed();
@@ -5071,6 +5021,10 @@ contract AgenticScore is ERC721, Ownable2Step, EIP712, IERC5192 {
     error ZeroAddress();
     error MetadataIsFrozen();
     error RenounceDisabled();
+    error WrongFee(uint256 expected, uint256 sent);
+    error FeeTooHigh();
+    error NothingToWithdraw();
+    error WithdrawFailed();
 
     constructor(address initialOwner, address initialSigner, string memory metadataURI_)
         ERC721("AgenticScore", "AGSC")
@@ -5087,13 +5041,19 @@ contract AgenticScore is ERC721, Ownable2Step, EIP712, IERC5192 {
     // Minting
     // ---------------------------------------------------------------------------------------
 
-    /// @notice Mint your AgenticScore NFT. Free: the function is not payable, so any BNB sent with
-    ///         the call makes it revert, and the caller pays only network gas.
+    /// @notice Mint your AgenticScore NFT. Costs `mintFee`, which is 0.00008 BNB at deploy, on top
+    ///         of the network gas. The call must carry exactly the fee: too little or too much
+    ///         reverts, so nobody overpays by accident.
     /// @param score    Starting score from the backend voucher. The contract treats it as an opaque number.
     /// @param deadline Unix time after which the voucher is no longer accepted.
     /// @param signature Backend signature over (msg.sender, score, deadline).
     /// @return tokenId The new token ID. IDs run from 1 to MAX_SUPPLY.
-    function mint(uint256 score, uint256 deadline, bytes calldata signature) external returns (uint256 tokenId) {
+    function mint(uint256 score, uint256 deadline, bytes calldata signature)
+        external
+        payable
+        returns (uint256 tokenId)
+    {
+        if (msg.value != mintFee) revert WrongFee(mintFee, msg.value);
         if (!mintOpen) revert MintClosed();
         if (block.timestamp > deadline) revert VoucherExpired();
         // Tokens cannot move or burn, so a balance above zero means this wallet already minted.
@@ -5124,6 +5084,11 @@ contract AgenticScore is ERC721, Ownable2Step, EIP712, IERC5192 {
         return _totalMinted;
     }
 
+    /// @notice Fees collected and not yet withdrawn.
+    function feesCollected() external view returns (uint256) {
+        return address(this).balance;
+    }
+
     // ---------------------------------------------------------------------------------------
     // Owner controls
     // ---------------------------------------------------------------------------------------
@@ -5131,6 +5096,24 @@ contract AgenticScore is ERC721, Ownable2Step, EIP712, IERC5192 {
     function setMintOpen(bool open) external onlyOwner {
         mintOpen = open;
         emit MintOpenUpdated(open);
+    }
+
+    /// @notice Change the mint fee. Applies to mints that have not been sent yet, so raise it
+    ///         between batches, not during one. Capped at MAX_MINT_FEE.
+    function setMintFee(uint256 newFee) external onlyOwner {
+        if (newFee > MAX_MINT_FEE) revert FeeTooHigh();
+        emit MintFeeUpdated(mintFee, newFee);
+        mintFee = newFee;
+    }
+
+    /// @notice Send every fee collected so far to the owner. Anyone can mint, but only the owner
+    ///         can move the money out, and it can only ever go to the owner.
+    function withdraw() external onlyOwner {
+        uint256 balance = address(this).balance;
+        if (balance == 0) revert NothingToWithdraw();
+        emit Withdrawn(owner(), balance);
+        (bool ok, ) = owner().call{value: balance}("");
+        if (!ok) revert WithdrawFailed();
     }
 
     /// @notice Rotate the voucher signer. Vouchers signed by the old signer stop working at once.
@@ -5152,7 +5135,8 @@ contract AgenticScore is ERC721, Ownable2Step, EIP712, IERC5192 {
         emit MetadataFrozen();
     }
 
-    /// @dev Disabled. Renouncing would strand the signer and the open/closed switch with no owner.
+    /// @dev Disabled. Renouncing would strand the signer, the open/closed switch and the collected
+    ///      fees with no owner.
     function renounceOwnership() public view override onlyOwner {
         revert RenounceDisabled();
     }

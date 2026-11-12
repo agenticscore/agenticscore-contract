@@ -2,6 +2,8 @@ const { expect } = require("chai");
 const { ethers } = require("hardhat");
 
 const URI = "ipfs://example-metadata/agenticscore.json";
+const FEE = 80_000_000_000_000n; // 0.00008 BNB, the fee the contract sets at deploy
+const MAX_FEE = ethers.parseEther("0.005");
 
 describe("AgenticScore", function () {
   let owner, backend, alice, bob, carol, stranger;
@@ -26,9 +28,9 @@ describe("AgenticScore", function () {
     return { score, deadline, signature };
   }
 
-  async function mintAs(user, score = 33890n) {
+  async function mintAs(user, score = 33890n, fee = FEE) {
     const v = await voucher(user, score);
-    return nft.connect(user).mint(v.score, v.deadline, v.signature);
+    return nft.connect(user).mint(v.score, v.deadline, v.signature, { value: fee });
   }
 
   beforeEach(async function () {
@@ -41,13 +43,16 @@ describe("AgenticScore", function () {
   });
 
   describe("deploy", function () {
-    it("starts closed, empty, and capped at 3,000", async function () {
+    it("starts closed, empty, capped at 3,000, and priced at 0.00008 BNB", async function () {
       expect(await nft.mintOpen()).to.equal(false);
       expect(await nft.totalSupply()).to.equal(0n);
       expect(await nft.MAX_SUPPLY()).to.equal(3000n);
       expect(await nft.signer()).to.equal(backend.address);
       expect(await nft.owner()).to.equal(owner.address);
       expect(await nft.name()).to.equal("AgenticScore");
+      expect(await nft.mintFee()).to.equal(FEE);
+      expect(await nft.MAX_MINT_FEE()).to.equal(MAX_FEE);
+      expect(await nft.feesCollected()).to.equal(0n);
     });
 
     it("refuses a zero signer", async function () {
@@ -71,7 +76,7 @@ describe("AgenticScore", function () {
 
       it("mints token 1 to the caller and reports the starting score in the event", async function () {
         const v = await voucher(alice, 33890n);
-        await expect(nft.connect(alice).mint(v.score, v.deadline, v.signature))
+        await expect(nft.connect(alice).mint(v.score, v.deadline, v.signature, { value: FEE }))
           .to.emit(nft, "Minted")
           .withArgs(alice.address, 1n, 33890n)
           .and.to.emit(nft, "Locked")
@@ -97,42 +102,37 @@ describe("AgenticScore", function () {
 
       it("rejects an expired voucher", async function () {
         const v = await voucher(alice, 100n, -1);
-        await expect(nft.connect(alice).mint(v.score, v.deadline, v.signature)).to.be.revertedWithCustomError(
-          nft,
-          "VoucherExpired"
-        );
+        await expect(
+          nft.connect(alice).mint(v.score, v.deadline, v.signature, { value: FEE })
+        ).to.be.revertedWithCustomError(nft, "VoucherExpired");
       });
 
       it("rejects a voucher signed by anyone but the backend signer", async function () {
         const v = await voucher(alice, 100n, 3600, stranger);
-        await expect(nft.connect(alice).mint(v.score, v.deadline, v.signature)).to.be.revertedWithCustomError(
-          nft,
-          "InvalidSignature"
-        );
+        await expect(
+          nft.connect(alice).mint(v.score, v.deadline, v.signature, { value: FEE })
+        ).to.be.revertedWithCustomError(nft, "InvalidSignature");
       });
 
       it("binds the voucher to one wallet", async function () {
         const v = await voucher(alice);
-        await expect(nft.connect(bob).mint(v.score, v.deadline, v.signature)).to.be.revertedWithCustomError(
-          nft,
-          "InvalidSignature"
-        );
+        await expect(
+          nft.connect(bob).mint(v.score, v.deadline, v.signature, { value: FEE })
+        ).to.be.revertedWithCustomError(nft, "InvalidSignature");
       });
 
       it("binds the voucher to its score, so the score cannot be edited", async function () {
         const v = await voucher(alice, 100n);
-        await expect(nft.connect(alice).mint(9999n, v.deadline, v.signature)).to.be.revertedWithCustomError(
-          nft,
-          "InvalidSignature"
-        );
+        await expect(
+          nft.connect(alice).mint(9999n, v.deadline, v.signature, { value: FEE })
+        ).to.be.revertedWithCustomError(nft, "InvalidSignature");
       });
 
       it("binds the voucher to its deadline", async function () {
         const v = await voucher(alice, 100n);
-        await expect(nft.connect(alice).mint(v.score, v.deadline + 1000n, v.signature)).to.be.revertedWithCustomError(
-          nft,
-          "InvalidSignature"
-        );
+        await expect(
+          nft.connect(alice).mint(v.score, v.deadline + 1000n, v.signature, { value: FEE })
+        ).to.be.revertedWithCustomError(nft, "InvalidSignature");
       });
 
       it("rejects a voucher made for another contract or chain", async function () {
@@ -140,25 +140,15 @@ describe("AgenticScore", function () {
         const value = { wallet: alice.address, score: 100n, deadline };
         const wrongDomain = { ...domain, verifyingContract: stranger.address };
         const signature = await backend.signTypedData(wrongDomain, types, value);
-        await expect(nft.connect(alice).mint(100n, deadline, signature)).to.be.revertedWithCustomError(
-          nft,
-          "InvalidSignature"
-        );
+        await expect(
+          nft.connect(alice).mint(100n, deadline, signature, { value: FEE })
+        ).to.be.revertedWithCustomError(nft, "InvalidSignature");
       });
 
       it("hashes vouchers the same way as the off-chain EIP-712 encoder", async function () {
         const value = { wallet: alice.address, score: 777n, deadline: 123456n };
         const offchain = ethers.TypedDataEncoder.hash(domain, types, value);
         expect(await nft.hashVoucher(value.wallet, value.score, value.deadline)).to.equal(offchain);
-      });
-
-      it("is free: BNB sent with the call makes it revert", async function () {
-        const v = await voucher(alice);
-        const data = nft.interface.encodeFunctionData("mint", [v.score, v.deadline, v.signature]);
-        await expect(
-          alice.sendTransaction({ to: await nft.getAddress(), data, value: 1n })
-        ).to.be.reverted;
-        expect(await nft.totalSupply()).to.equal(0n);
       });
 
       it("does not accept plain BNB transfers", async function () {
@@ -171,20 +161,75 @@ describe("AgenticScore", function () {
         await wallet.waitForDeployment();
         const walletAddress = await wallet.getAddress();
         const v = await voucher(walletAddress, 500n);
-        await wallet.mintFrom(await nft.getAddress(), v.score, v.deadline, v.signature);
+        await wallet.mintFrom(await nft.getAddress(), v.score, v.deadline, v.signature, { value: FEE });
         expect(await nft.ownerOf(1n)).to.equal(walletAddress);
+        expect(await nft.feesCollected()).to.equal(FEE);
       });
 
       it("reports its gas use", async function () {
         const v = await voucher(alice);
-        const tx = await nft.connect(alice).mint(v.score, v.deadline, v.signature);
+        const tx = await nft.connect(alice).mint(v.score, v.deadline, v.signature, { value: FEE });
         const receipt = await tx.wait();
         console.log("        first mint gas:", receipt.gasUsed.toString());
         const v2 = await voucher(bob);
-        const tx2 = await nft.connect(bob).mint(v2.score, v2.deadline, v2.signature);
+        const tx2 = await nft.connect(bob).mint(v2.score, v2.deadline, v2.signature, { value: FEE });
         const receipt2 = await tx2.wait();
         console.log("        later mint gas:", receipt2.gasUsed.toString());
         expect(receipt2.gasUsed).to.be.lessThan(200000n);
+      });
+    });
+
+    describe("the mint fee", function () {
+      beforeEach(async function () {
+        await nft.setMintOpen(true);
+      });
+
+      it("rejects a mint that sends nothing", async function () {
+        await expect(mintAs(alice, 33890n, 0n)).to.be.revertedWithCustomError(nft, "WrongFee");
+      });
+
+      it("rejects a mint that sends too little", async function () {
+        await expect(mintAs(alice, 33890n, FEE - 1n)).to.be.revertedWithCustomError(nft, "WrongFee");
+      });
+
+      it("rejects a mint that sends too much, so nobody overpays by accident", async function () {
+        await expect(mintAs(alice, 33890n, FEE + 1n)).to.be.revertedWithCustomError(nft, "WrongFee");
+      });
+
+      it("holds the fees and reports them", async function () {
+        await mintAs(alice);
+        await mintAs(bob);
+        expect(await nft.feesCollected()).to.equal(FEE * 2n);
+        expect(await ethers.provider.getBalance(await nft.getAddress())).to.equal(FEE * 2n);
+      });
+
+      it("lets the owner change the fee, and the new fee applies to the next mint", async function () {
+        const newFee = ethers.parseEther("0.0001");
+        await expect(nft.setMintFee(newFee)).to.emit(nft, "MintFeeUpdated").withArgs(FEE, newFee);
+        expect(await nft.mintFee()).to.equal(newFee);
+        await expect(mintAs(alice, 33890n, FEE)).to.be.revertedWithCustomError(nft, "WrongFee");
+        await mintAs(alice, 33890n, newFee);
+        expect(await nft.feesCollected()).to.equal(newFee);
+      });
+
+      it("refuses a fee above the cap", async function () {
+        await expect(nft.setMintFee(MAX_FEE + 1n)).to.be.revertedWithCustomError(nft, "FeeTooHigh");
+        await nft.setMintFee(MAX_FEE);
+        expect(await nft.mintFee()).to.equal(MAX_FEE);
+      });
+
+      it("lets only the owner change the fee", async function () {
+        await expect(nft.connect(stranger).setMintFee(1n)).to.be.revertedWithCustomError(
+          nft,
+          "OwnableUnauthorizedAccount"
+        );
+      });
+
+      it("allows a zero fee, which is how the mint is made free again", async function () {
+        await nft.setMintFee(0n);
+        await mintAs(alice, 33890n, 0n);
+        expect(await nft.totalSupply()).to.equal(1n);
+        expect(await nft.feesCollected()).to.equal(0n);
       });
     });
 
@@ -201,7 +246,7 @@ describe("AgenticScore", function () {
       async function harnessMint(user) {
         const deadline = BigInt((await now()) + 3600);
         const signature = await backend.signTypedData(harnessDomain, types, { wallet: user.address, score: 1n, deadline });
-        return harness.connect(user).mint(1n, deadline, signature);
+        return harness.connect(user).mint(1n, deadline, signature, { value: FEE });
       }
 
       it("hands out token 3,000 and then stops", async function () {
@@ -210,6 +255,53 @@ describe("AgenticScore", function () {
         expect(await harness.totalSupply()).to.equal(3000n);
         await expect(harnessMint(bob)).to.be.revertedWithCustomError(harness, "SoldOut");
       });
+    });
+  });
+
+  describe("withdrawing", function () {
+    beforeEach(async function () {
+      await nft.setMintOpen(true);
+      await mintAs(alice);
+      await mintAs(bob);
+    });
+
+    it("sends the whole balance to the owner, and the contract is left empty", async function () {
+      const nftAddress = await nft.getAddress();
+      await expect(nft.withdraw()).to.changeEtherBalance(owner, FEE * 2n);
+      expect(await ethers.provider.getBalance(nftAddress)).to.equal(0n);
+      expect(await nft.feesCollected()).to.equal(0n);
+    });
+
+    it("says out loud what it sent, and to whom", async function () {
+      await expect(nft.withdraw()).to.emit(nft, "Withdrawn").withArgs(owner.address, FEE * 2n);
+    });
+
+    it("lets only the owner withdraw", async function () {
+      await expect(nft.connect(stranger).withdraw()).to.be.revertedWithCustomError(
+        nft,
+        "OwnableUnauthorizedAccount"
+      );
+      expect(await nft.feesCollected()).to.equal(FEE * 2n);
+    });
+
+    it("reverts when there is nothing to withdraw", async function () {
+      await nft.withdraw();
+      await expect(nft.withdraw()).to.be.revertedWithCustomError(nft, "NothingToWithdraw");
+    });
+
+    it("can be withdrawn more than once, as fees keep coming in", async function () {
+      await nft.withdraw();
+      await mintAs(carol);
+      expect(await nft.feesCollected()).to.equal(FEE);
+      await expect(nft.withdraw()).to.emit(nft, "Withdrawn").withArgs(owner.address, FEE);
+      expect(await nft.feesCollected()).to.equal(0n);
+    });
+
+    it("sends the fees to the owner even after ownership moves", async function () {
+      await nft.transferOwnership(bob.address);
+      await nft.connect(bob).acceptOwnership();
+      await expect(nft.connect(bob).withdraw()).to.emit(nft, "Withdrawn").withArgs(bob.address, FEE * 2n);
+      expect(await nft.feesCollected()).to.equal(0n);
     });
   });
 
@@ -313,10 +405,10 @@ describe("AgenticScore", function () {
       );
       await expect(nft.setSigner(carol.address)).to.emit(nft, "SignerUpdated").withArgs(backend.address, carol.address);
       await expect(
-        nft.connect(alice).mint(oldVoucher.score, oldVoucher.deadline, oldVoucher.signature)
+        nft.connect(alice).mint(oldVoucher.score, oldVoucher.deadline, oldVoucher.signature, { value: FEE })
       ).to.be.revertedWithCustomError(nft, "InvalidSignature");
       const fresh = await voucher(alice, 5n, 3600, carol);
-      await nft.connect(alice).mint(fresh.score, fresh.deadline, fresh.signature);
+      await nft.connect(alice).mint(fresh.score, fresh.deadline, fresh.signature, { value: FEE });
       expect(await nft.ownerOf(1n)).to.equal(alice.address);
     });
 

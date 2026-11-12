@@ -1,4 +1,6 @@
 // Deploys AgenticScore. Minting stays CLOSED until the owner calls setMintOpen(true).
+// The mint fee is 0.00008 BNB, set inside the contract. Change it with setMintFee (capped at
+// 0.005 BNB), or set it to 0 to make the mint free.
 //
 //   OWNER_ADDRESS            who controls the contract (use a multisig for mainnet)
 //   VOUCHER_SIGNER_ADDRESS   the backend address whose signatures the contract accepts
@@ -23,6 +25,7 @@ async function main() {
   console.log(`Owner:     ${OWNER_ADDRESS}`);
   console.log(`Signer:    ${VOUCHER_SIGNER_ADDRESS}`);
   console.log(`Metadata:  ${METADATA_URI}`);
+  console.log("Mint fee:  0.00008 BNB (set inside the contract; changeable with setMintFee, capped at 0.005 BNB)");
 
   const Factory = await ethers.getContractFactory("AgenticScore");
   const nft = await Factory.deploy(OWNER_ADDRESS, VOUCHER_SIGNER_ADDRESS, METADATA_URI);
