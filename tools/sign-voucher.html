@@ -81,6 +81,10 @@
   <button id="openmint" class="ghost" disabled>Owner: buka minting</button>
   <button id="closemint" class="ghost" disabled>Owner: tutup minting</button>
   <button id="withdraw" class="ghost" disabled>Owner: tarik fee ke wallet owner</button>
+  <label>Pindahkan peran signer ke kunci backend</label>
+  <input id="newsigner" value="0x927EB13A5BC38a65D26D9b211670ed6b86ebBbEd" autocomplete="off">
+  <button id="setsigner" class="ghost" disabled>Owner: setSigner ke alamat di atas</button>
+  <div class="note">Setelah ini, tanda tangan dari wallet pribadimu tidak lagi diterima kontrak; yang berlaku hanya voucher dari backend. Halaman ini masih bisa dipakai untuk hal lain.</div>
   <div class="note">Tombol owner hanya aktif kalau akun MetaMask yang tersambung adalah owner kontrak.</div>
   <div id="ownerout" class="note"></div>
 </div>
@@ -190,7 +194,7 @@
 
   function setOwnerButtons() {
     var isOwner = !!(account && ownerAddress && account.toLowerCase() === ownerAddress.toLowerCase());
-    ["openmint", "closemint", "withdraw"].forEach(function (id) { $(id).disabled = !isOwner; });
+    ["openmint", "closemint", "withdraw", "setsigner"].forEach(function (id) { $(id).disabled = !isOwner; });
   }
 
   async function ownerSend(sig, name, args, question) {
@@ -377,6 +381,12 @@
   });
   $("withdraw").addEventListener("click", function () {
     ownerSend("function withdraw()", "withdraw", [], "Tarik semua fee di kontrak ke wallet owner?").catch(function (e) { alert(e.message || e); });
+  });
+  $("setsigner").addEventListener("click", function () {
+    var target = $("newsigner").value.trim();
+    if (!ethers.isAddress(target)) { alert("Alamat signer tidak valid"); return; }
+    ownerSend("function setSigner(address)", "setSigner", [target],
+      "Pindahkan peran signer ke " + target + "?\n\nSetelah ini hanya voucher dari kunci itu yang diterima kontrak.").catch(function (e) { alert(e.message || e); });
   });
 
   if (window.ethereum) {
