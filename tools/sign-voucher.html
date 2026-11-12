@@ -59,6 +59,8 @@
   <div id="sigbox" class="hide">
     <label>Signature</label>
     <div class="mono" id="sig"></div>
+    <label>Voucher berlaku sampai</label>
+    <div class="mono" id="deadline"></div>
     <button id="verify" class="ghost">3. Cek voucher tanpa mint (gratis)</button>
     <div id="verifyout" class="note"></div>
   </div>
@@ -217,6 +219,7 @@
     voucher = { wallet: wallet, score: score, deadline: deadline, signature: signature };
     $("sigbox").classList.remove("hide");
     $("sig").textContent = signature;
+    $("deadline").textContent = new Date(deadline * 1000).toLocaleString() + " (" + ttl + " detik dari saat tanda tangan)";
     $("verifyout").textContent = "";
     $("mint").disabled = false;
     showAccountHint();
