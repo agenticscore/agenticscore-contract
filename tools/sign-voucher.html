@@ -219,6 +219,7 @@
     $("sig").textContent = signature;
     $("verifyout").textContent = "";
     $("mint").disabled = false;
+    showAccountHint();
   }
 
   async function verify() {
@@ -247,8 +248,21 @@
     $("verifyout").innerHTML = lines.join("<br>");
   }
 
+  function showAccountHint() {
+    if (!voucher) return;
+    var matches = account && account.toLowerCase() === voucher.wallet.toLowerCase();
+    $("mintout").innerHTML = matches
+      ? '<span class="ok">akun tersambung sama dengan alamat penerima voucher</span>'
+      : '<span class="warn">akun tersambung berbeda dari alamat penerima voucher (' + short(voucher.wallet) + '). Ganti akun di MetaMask ke alamat itu sebelum mint.</span>';
+  }
+
   async function mint() {
     if (!voucher) return;
+    if (!account || account.toLowerCase() !== voucher.wallet.toLowerCase()) {
+      alert("Akun MetaMask yang tersambung bukan alamat penerima voucher.\n\nTersambung: " + account +
+        "\nPenerima: " + voucher.wallet + "\n\nGanti akun di MetaMask ke alamat penerima, lalu tekan Mint lagi.");
+      return;
+    }
     var open = await read.mintOpen();
     if (!open) { alert("Minting masih TERTUTUP di kontrak. Tidak ada yang bisa mint sekarang."); return; }
     var fee = await read.mintFee();
@@ -304,7 +318,8 @@
     window.ethereum.on("accountsChanged", function (accs) {
       account = accs[0] || null;
       $("account").textContent = account ? short(account) : "belum tersambung";
-      $("mint").disabled = true;
+      setOwnerButtons();
+      showAccountHint();
     });
   }
   refresh();
