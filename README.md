@@ -78,6 +78,37 @@ provider if you expect traffic.
 The compiler target is `cancun`. BNB Smart Chain supports it since the Haber hard fork (June 2024), and
 OpenZeppelin 5.6 needs it (`mcopy`).
 
+## Deploying from Remix, or verifying on BscScan
+
+`verify/AgenticScore.flat.sol` is the contract with OpenZeppelin 5.6.1 inlined into a single file: one
+SPDX line, one `pragma solidity 0.8.28;`, no imports. It compiles on its own with the settings below, so
+it is what BscScan's single-file verifier wants and what Remix can take by paste.
+
+The settings have to match `hardhat.config.js` exactly, or the deployed bytecode is not the bytecode the
+tests cover:
+
+| Setting | Value |
+| --- | --- |
+| Compiler | `0.8.28` |
+| Optimizer | enabled, 200 runs |
+| EVM version | `cancun` |
+| OpenZeppelin | `5.6.1` |
+
+In Remix, paste the flat file, pick 0.8.28, tick the optimizer at 200 runs, and set the EVM version to
+cancun under Advanced Configurations. Remix resolves `@openzeppelin/contracts/...` to the newest published
+version, which is why the flat file exists: it pins 5.6.1 the same way `package-lock.json` does.
+
+Constructor arguments, in order: `initialOwner`, `initialSigner`, `metadataURI_`.
+
+To regenerate the flat file after a contract change:
+
+```bash
+npx hardhat flatten contracts/AgenticScore.sol > /tmp/flat.sol
+# then keep one SPDX line and one pragma line, because BscScan rejects duplicates:
+grep -v '^// SPDX-License-Identifier' /tmp/flat.sol | grep -v '^pragma solidity' \
+  | sed '1i // SPDX-License-Identifier: MIT\npragma solidity 0.8.28;' > verify/AgenticScore.flat.sol
+```
+
 ## Gas
 
 Measured in the test suite: about **102,700 gas** for the first mint and **85,600** for later ones. The fee is gas used
