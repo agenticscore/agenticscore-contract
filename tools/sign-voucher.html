@@ -106,6 +106,55 @@
   ];
   var provider = new ethers.JsonRpcProvider(RPC, CHAIN_ID, { staticNetwork: true });
   var read = new ethers.Contract(CONTRACT, ABI, provider);
+
+  var ERRORS = [
+    "error OwnableUnauthorizedAccount(address account)",
+    "error MintClosed()",
+    "error NothingToWithdraw()",
+    "error WrongFee(uint256 expected, uint256 sent)",
+    "error AlreadyMinted()",
+    "error InvalidSignature()",
+    "error VoucherExpired()",
+    "error SoldOut()",
+    "error FeeTooHigh()",
+    "error MetadataIsFrozen()",
+    "error ZeroAddress()",
+    "error RenounceDisabled()"
+  ];
+  var errIface = new ethers.Interface(ERRORS);
+  var ERR_MSG = {
+    OwnableUnauthorizedAccount: "akun ini bukan owner kontrak",
+    MintClosed: "minting masih tertutup di kontrak",
+    NothingToWithdraw: "tidak ada fee untuk ditarik",
+    WrongFee: "nilai yang dikirim tidak sama dengan mintFee",
+    AlreadyMinted: "wallet ini sudah pernah mint",
+    InvalidSignature: "voucher tidak cocok dengan signer kontrak",
+    VoucherExpired: "voucher sudah kedaluwarsa, tanda tangan ulang",
+    SoldOut: "3.000 sudah habis",
+    FeeTooHigh: "fee di atas batas",
+    MetadataIsFrozen: "metadata sudah dibekukan"
+  };
+
+  function explain(e) {
+    var data = e && (e.data || (e.info && e.info.error && e.info.error.data));
+    if (data) {
+      try {
+        var parsed = errIface.parseError(data);
+        if (parsed) return (ERR_MSG[parsed.name] || "kontrak menolak") + " [" + parsed.name + "]";
+      } catch (err) { /* not a known custom error */ }
+    }
+    return (e && (e.shortMessage || e.message)) || String(e);
+  }
+
+  // Simulates the call on a public node first, so a rejected call costs nothing and shows why.
+  async function simulate(from, data, value) {
+    try {
+      await provider.call({ from: from, to: CONTRACT, data: data, value: value || 0n });
+      return null;
+    } catch (e) {
+      return explain(e);
+    }
+  }
   var signerAddress = null;
   var ownerAddress = null;
   var account = null;
@@ -148,10 +197,17 @@
     if (!confirm(question)) return;
     var iface = new ethers.Interface([sig]);
     var data = iface.encodeFunctionData(name, args);
+    $("ownerout").textContent = "memeriksa dulu tanpa biaya...";
+    var problem = await simulate(account, data, 0n);
+    if (problem) {
+      $("ownerout").innerHTML = '<span class="bad">kontrak menolak panggilan ini: ' + problem + "</span><br>" +
+        "akun tersambung: " + account + "<br>owner kontrak: " + ownerAddress;
+      return;
+    }
     try {
       var hash = await window.ethereum.request({
         method: "eth_sendTransaction",
-        params: [{ from: account, to: CONTRACT, data: data }]
+        params: [{ from: account, to: CONTRACT, data: data, gas: "0x30d40" }]
       });
       $("ownerout").innerHTML = "tx: <span class='mono'>" + hash + "</span> menunggu konfirmasi...";
       await provider.waitForTransaction(hash, 1, 180000);
@@ -281,11 +337,17 @@
     var iface = new ethers.Interface(["function mint(uint256 score, uint256 deadline, bytes signature) returns (uint256)"]);
     var data = iface.encodeFunctionData("mint", [voucher.score, voucher.deadline, voucher.signature]);
 
+    $("mintout").textContent = "memeriksa dulu tanpa biaya...";
+    var problem = await simulate(account, data, fee);
+    if (problem) {
+      $("mintout").innerHTML = '<span class="bad">kontrak menolak mint ini: ' + problem + "</span>";
+      return;
+    }
     $("mintout").textContent = "menunggu konfirmasi di MetaMask...";
     try {
       var hash = await window.ethereum.request({
         method: "eth_sendTransaction",
-        params: [{ from: account, to: CONTRACT, value: "0x" + fee.toString(16), data: data }]
+        params: [{ from: account, to: CONTRACT, value: "0x" + fee.toString(16), data: data, gas: "0x7a120" }]
       });
       $("mintout").innerHTML = "tx dikirim: <span class='mono'>" + hash + "</span><br>menunggu konfirmasi blok...";
       var receipt = await provider.waitForTransaction(hash, 1, 180000);
