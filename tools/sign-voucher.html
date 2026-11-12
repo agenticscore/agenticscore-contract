@@ -73,6 +73,16 @@
   <div id="mintout" class="note"></div>
 </div>
 
+<div class="card">
+  <div class="row"><span>owner()</span><span id="owner">-</span></div>
+  <div class="row"><span>Fee terkumpul</span><span id="fees">-</span></div>
+  <button id="openmint" class="ghost" disabled>Owner: buka minting</button>
+  <button id="closemint" class="ghost" disabled>Owner: tutup minting</button>
+  <button id="withdraw" class="ghost" disabled>Owner: tarik fee ke wallet owner</button>
+  <div class="note">Tombol owner hanya aktif kalau akun MetaMask yang tersambung adalah owner kontrak.</div>
+  <div id="ownerout" class="note"></div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
 <script>
 (function () {
@@ -88,11 +98,14 @@
     "function MAX_SUPPLY() view returns (uint256)",
     "function signer() view returns (address)",
     "function hashVoucher(address wallet, uint256 score, uint256 deadline) view returns (bytes32)",
-    "function tokenURI(uint256 tokenId) view returns (string)"
+    "function tokenURI(uint256 tokenId) view returns (string)",
+    "function owner() view returns (address)",
+    "function feesCollected() view returns (uint256)"
   ];
   var provider = new ethers.JsonRpcProvider(RPC, CHAIN_ID, { staticNetwork: true });
   var read = new ethers.Contract(CONTRACT, ABI, provider);
   var signerAddress = null;
+  var ownerAddress = null;
   var account = null;
   var voucher = null;
 
@@ -102,9 +115,14 @@
   async function refresh() {
     try {
       var out = await Promise.all([
-        read.name(), read.mintOpen(), read.mintFee(), read.totalSupply(), read.MAX_SUPPLY(), read.signer()
+        read.name(), read.mintOpen(), read.mintFee(), read.totalSupply(), read.MAX_SUPPLY(), read.signer(),
+        read.owner(), read.feesCollected()
       ]);
       signerAddress = out[5];
+      ownerAddress = out[6];
+      $("owner").textContent = short(ownerAddress);
+      $("fees").textContent = ethers.formatEther(out[7]) + " BNB";
+      setOwnerButtons();
       $("addr").textContent = short(CONTRACT);
       $("name").textContent = out[0];
       $("open").innerHTML = out[1] ? '<span class="ok">TERBUKA</span>' : '<span class="warn">TERTUTUP</span>';
@@ -116,6 +134,29 @@
       if (!out[1]) $("mintwarn").className = "note warn";
     } catch (e) {
       $("addr").innerHTML = '<span class="bad">gagal baca RPC</span>';
+    }
+  }
+
+  function setOwnerButtons() {
+    var isOwner = !!(account && ownerAddress && account.toLowerCase() === ownerAddress.toLowerCase());
+    ["openmint", "closemint", "withdraw"].forEach(function (id) { $(id).disabled = !isOwner; });
+  }
+
+  async function ownerSend(sig, name, args, question) {
+    if (!confirm(question)) return;
+    var iface = new ethers.Interface([sig]);
+    var data = iface.encodeFunctionData(name, args);
+    try {
+      var hash = await window.ethereum.request({
+        method: "eth_sendTransaction",
+        params: [{ from: account, to: CONTRACT, data: data }]
+      });
+      $("ownerout").innerHTML = "tx: <span class='mono'>" + hash + "</span> menunggu konfirmasi...";
+      await provider.waitForTransaction(hash, 1, 180000);
+      $("ownerout").innerHTML = "selesai: <span class='mono'>" + hash + "</span>";
+      refresh();
+    } catch (e) {
+      $("ownerout").innerHTML = '<span class="bad">gagal: ' + (e.message || e) + "</span>";
     }
   }
 
@@ -138,6 +179,7 @@
     $("account").textContent = short(account);
     $("wallet").value = account;
     $("sign").disabled = false;
+    setOwnerButtons();
     if (signerAddress && account.toLowerCase() !== signerAddress.toLowerCase()) {
       $("account").innerHTML = short(account) + ' <span class="warn">(bukan signer)</span>';
     }
@@ -247,6 +289,16 @@
   $("sign").addEventListener("click", function () { signVoucher().catch(function (e) { alert(e.message || e); }); });
   $("verify").addEventListener("click", function () { verify().catch(function (e) { alert(e.message || e); }); });
   $("mint").addEventListener("click", function () { mint().catch(function (e) { alert(e.message || e); }); });
+  $("openmint").addEventListener("click", function () {
+    ownerSend("function setMintOpen(bool)", "setMintOpen", [true],
+      "Buka minting di mainnet? Setelah ini siapa pun yang punya voucher valid bisa mint.").catch(function (e) { alert(e.message || e); });
+  });
+  $("closemint").addEventListener("click", function () {
+    ownerSend("function setMintOpen(bool)", "setMintOpen", [false], "Tutup minting?").catch(function (e) { alert(e.message || e); });
+  });
+  $("withdraw").addEventListener("click", function () {
+    ownerSend("function withdraw()", "withdraw", [], "Tarik semua fee di kontrak ke wallet owner?").catch(function (e) { alert(e.message || e); });
+  });
 
   if (window.ethereum) {
     window.ethereum.on("accountsChanged", function (accs) {
