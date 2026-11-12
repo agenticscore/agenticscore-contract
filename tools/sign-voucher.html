@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AgenticScore - voucher & mint (mainnet)</title>
+<style>
+  :root { --bg:#0a0d16; --card:#151620; --line:#272c3a; --ink:#e8ebf5; --dim:#abb2ca; --blue:#3263af; --good:#3ddc97; --bad:#ff6b6b; }
+  * { box-sizing:border-box; }
+  body { margin:0; padding:16px; background:var(--bg); color:var(--ink);
+         font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
+  h1 { font-size:18px; margin:0 0 4px; }
+  .sub { color:var(--dim); font-size:13px; margin-bottom:16px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px; margin-bottom:12px; }
+  label { display:block; font-size:12px; color:var(--dim); margin:10px 0 4px; }
+  input { width:100%; padding:11px; border-radius:8px; border:1px solid var(--line);
+          background:#0d111b; color:var(--ink); font-size:14px; font-family:ui-monospace,monospace; }
+  button { width:100%; padding:14px; margin-top:12px; border:0; border-radius:8px;
+           background:var(--blue); color:#fff; font-size:15px; font-weight:600; }
+  button:disabled { opacity:.45; }
+  button.ghost { background:#0d111b; border:1px solid var(--line); color:var(--ink); font-weight:400; }
+  button.danger { background:#7f1d1d; }
+  .row { display:flex; justify-content:space-between; gap:10px; font-size:13px; padding:3px 0; }
+  .row span:last-child { font-family:ui-monospace,monospace; text-align:right; word-break:break-all; }
+  .ok { color:var(--good); } .bad { color:var(--bad); } .warn { color:#ffcc66; }
+  .mono { font-family:ui-monospace,monospace; font-size:12px; word-break:break-all; }
+  .hide { display:none; }
+  .note { font-size:12px; color:var(--dim); margin-top:8px; }
+</style>
+</head>
+<body>
+<h1>AgenticScore - voucher &amp; mint</h1>
+<p class="sub">Mainnet BNB Smart Chain. Kunci tidak pernah menyentuh halaman ini: tanda tangan dilakukan MetaMask.</p>
+
+<div class="card">
+  <div class="row"><span>Kontrak</span><span id="addr">-</span></div>
+  <div class="row"><span>Nama</span><span id="name">-</span></div>
+  <div class="row"><span>Minting</span><span id="open">-</span></div>
+  <div class="row"><span>Mint fee</span><span id="fee">-</span></div>
+  <div class="row"><span>Terjual</span><span id="supply">-</span></div>
+  <div class="row"><span>signer()</span><span id="signer">-</span></div>
+  <div class="row"><span>Akun MetaMask</span><span id="account">belum tersambung</span></div>
+</div>
+
+<div class="card">
+  <button id="connect">1. Sambungkan MetaMask</button>
+
+  <label>Wallet yang akan mint (alamat penerima NFT)</label>
+  <input id="wallet" placeholder="0x..." autocomplete="off">
+
+  <label>Score (bilangan bulat, skala dikali 100, mis. 338.9 -&gt; 33890)</label>
+  <input id="score" value="33890" inputmode="numeric">
+
+  <label>Voucher berlaku (detik)</label>
+  <input id="ttl" value="900" inputmode="numeric">
+
+  <button id="sign" disabled>2. Tanda tangani voucher (gratis)</button>
+
+  <div id="sigbox" class="hide">
+    <label>Signature</label>
+    <div class="mono" id="sig"></div>
+    <button id="verify" class="ghost">3. Cek voucher tanpa mint (gratis)</button>
+    <div id="verifyout" class="note"></div>
+  </div>
+</div>
+
+<div class="card">
+  <button id="mint" class="danger" disabled>4. MINT DI MAINNET (pakai 1 dari 3.000)</button>
+  <div class="note" id="mintwarn">
+    Mint mengirim fee <span id="fee2">-</span> ke kontrak dan mencetak NFT permanen ke alamat di atas.
+    NFT ini soulbound dan tidak bisa dibakar, jadi alamat itu tidak bisa mint lagi.
+  </div>
+  <div id="mintout" class="note"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
+<script>
+(function () {
+  "use strict";
+  var CONTRACT = "0x9ABB0c362B6F907b9Dadb8941E5C04B0705e7EF0";
+  var CHAIN_ID = 56;
+  var RPC = "https://bsc-dataseed.bnbchain.org";
+  var ABI = [
+    "function name() view returns (string)",
+    "function mintOpen() view returns (bool)",
+    "function mintFee() view returns (uint256)",
+    "function totalSupply() view returns (uint256)",
+    "function MAX_SUPPLY() view returns (uint256)",
+    "function signer() view returns (address)",
+    "function hashVoucher(address wallet, uint256 score, uint256 deadline) view returns (bytes32)",
+    "function tokenURI(uint256 tokenId) view returns (string)"
+  ];
+  var provider = new ethers.JsonRpcProvider(RPC, CHAIN_ID, { staticNetwork: true });
+  var read = new ethers.Contract(CONTRACT, ABI, provider);
+  var signerAddress = null;
+  var account = null;
+  var voucher = null;
+
+  var $ = function (id) { return document.getElementById(id); };
+  var short = function (a) { return a ? a.slice(0, 6) + "..." + a.slice(-4) : "-"; };
+
+  async function refresh() {
+    try {
+      var out = await Promise.all([
+        read.name(), read.mintOpen(), read.mintFee(), read.totalSupply(), read.MAX_SUPPLY(), read.signer()
+      ]);
+      signerAddress = out[5];
+      $("addr").textContent = short(CONTRACT);
+      $("name").textContent = out[0];
+      $("open").innerHTML = out[1] ? '<span class="ok">TERBUKA</span>' : '<span class="warn">TERTUTUP</span>';
+      var fee = ethers.formatEther(out[2]) + " BNB";
+      $("fee").textContent = fee;
+      $("fee2").textContent = fee;
+      $("supply").textContent = out[3].toString() + " / " + out[4].toString();
+      $("signer").textContent = short(signerAddress);
+      if (!out[1]) $("mintwarn").className = "note warn";
+    } catch (e) {
+      $("addr").innerHTML = '<span class="bad">gagal baca RPC</span>';
+    }
+  }
+
+  async function connect() {
+    if (!window.ethereum) {
+      $("account").innerHTML = '<span class="bad">tidak ada wallet</span> - buka halaman ini di browser MetaMask';
+      return;
+    }
+    var accs = await window.ethereum.request({ method: "eth_requestAccounts" });
+    var chain = await window.ethereum.request({ method: "eth_chainId" });
+    if (parseInt(chain, 16) !== CHAIN_ID) {
+      try {
+        await window.ethereum.request({ method: "wallet_switchEthereumChain", params: [{ chainId: "0x38" }] });
+      } catch (e) {
+        $("account").innerHTML = '<span class="bad">jaringan bukan BNB Chain</span> - ganti manual di MetaMask';
+        return;
+      }
+    }
+    account = accs[0];
+    $("account").textContent = short(account);
+    $("wallet").value = account;
+    $("sign").disabled = false;
+    if (signerAddress && account.toLowerCase() !== signerAddress.toLowerCase()) {
+      $("account").innerHTML = short(account) + ' <span class="warn">(bukan signer)</span>';
+    }
+  }
+
+  async function signVoucher() {
+    var wallet = $("wallet").value.trim();
+    if (!ethers.isAddress(wallet)) { alert("Alamat wallet tidak valid"); return; }
+    var score = $("score").value.trim();
+    if (!/^\d+$/.test(score)) { alert("Score harus bilangan bulat"); return; }
+    var ttl = parseInt($("ttl").value, 10) || 900;
+    var deadline = Math.floor(Date.now() / 1000) + ttl;
+
+    var payload = {
+      types: {
+        EIP712Domain: [
+          { name: "name", type: "string" }, { name: "version", type: "string" },
+          { name: "chainId", type: "uint256" }, { name: "verifyingContract", type: "address" }
+        ],
+        Mint: [
+          { name: "wallet", type: "address" }, { name: "score", type: "uint256" },
+          { name: "deadline", type: "uint256" }
+        ]
+      },
+      primaryType: "Mint",
+      domain: { name: "AgenticScore", version: "1", chainId: CHAIN_ID, verifyingContract: CONTRACT },
+      message: { wallet: wallet, score: score, deadline: String(deadline) }
+    };
+
+    var signature = await window.ethereum.request({
+      method: "eth_signTypedData_v4",
+      params: [account, JSON.stringify(payload)]
+    });
+
+    voucher = { wallet: wallet, score: score, deadline: deadline, signature: signature };
+    $("sigbox").classList.remove("hide");
+    $("sig").textContent = signature;
+    $("verifyout").textContent = "";
+    $("mint").disabled = false;
+  }
+
+  async function verify() {
+    if (!voucher) return;
+    var types = { Mint: [
+      { name: "wallet", type: "address" }, { name: "score", type: "uint256" }, { name: "deadline", type: "uint256" }
+    ]};
+    var domain = { name: "AgenticScore", version: "1", chainId: CHAIN_ID, verifyingContract: CONTRACT };
+    var value = { wallet: voucher.wallet, score: BigInt(voucher.score), deadline: BigInt(voucher.deadline) };
+
+    var recovered = ethers.verifyTypedData(domain, types, value, voucher.signature);
+    var mine = ethers.TypedDataEncoder.hash(domain, types, value);
+    var onchain = await read.hashVoucher(voucher.wallet, voucher.score, voucher.deadline);
+
+    var lines = [];
+    lines.push("penanda tangan terpulihkan: " + recovered);
+    lines.push("signer() kontrak: " + signerAddress);
+    lines.push(recovered.toLowerCase() === String(signerAddress).toLowerCase()
+      ? '<span class="ok">tanda tangan cocok dengan signer kontrak</span>'
+      : '<span class="bad">tanda tangan BUKAN dari signer kontrak, mint akan ditolak</span>');
+    lines.push("hash di luar kontrak: " + mine);
+    lines.push("hashVoucher() kontrak: " + onchain);
+    lines.push(mine === onchain
+      ? '<span class="ok">domain dan nilai cocok, kontrak akan menerima voucher ini</span>'
+      : '<span class="bad">hash tidak sama, ada yang salah di domain atau nilainya</span>');
+    $("verifyout").innerHTML = lines.join("<br>");
+  }
+
+  async function mint() {
+    if (!voucher) return;
+    var open = await read.mintOpen();
+    if (!open) { alert("Minting masih TERTUTUP di kontrak. Tidak ada yang bisa mint sekarang."); return; }
+    var fee = await read.mintFee();
+    var ok = confirm(
+      "Kirim mint ke mainnet?\n\n" +
+      "Penerima NFT: " + voucher.wallet + "\n" +
+      "Score di event: " + voucher.score + "\n" +
+      "Fee: " + ethers.formatEther(fee) + " BNB (fee jaringan terpisah)\n\n" +
+      "NFT ini soulbound dan tidak bisa dibakar. Alamat itu tidak bisa mint lagi."
+    );
+    if (!ok) return;
+
+    var iface = new ethers.Interface(["function mint(uint256 score, uint256 deadline, bytes signature) returns (uint256)"]);
+    var data = iface.encodeFunctionData("mint", [voucher.score, voucher.deadline, voucher.signature]);
+
+    $("mintout").textContent = "menunggu konfirmasi di MetaMask...";
+    try {
+      var hash = await window.ethereum.request({
+        method: "eth_sendTransaction",
+        params: [{ from: account, to: CONTRACT, value: "0x" + fee.toString(16), data: data }]
+      });
+      $("mintout").innerHTML = "tx dikirim: <span class='mono'>" + hash + "</span><br>menunggu konfirmasi blok...";
+      var receipt = await provider.waitForTransaction(hash, 1, 180000);
+      if (!receipt || receipt.status !== 1) { $("mintout").innerHTML = '<span class="bad">transaksi gagal</span>'; return; }
+      var total = await read.totalSupply();
+      var uri = await read.tokenURI(total);
+      $("mintout").innerHTML =
+        '<span class="ok">mint berhasil</span><br>tx: <span class="mono">' + hash + '</span><br>' +
+        "tokenId: " + total.toString() + "<br>tokenURI: <span class='mono'>" + uri + "</span><br>" +
+        '<a style="color:#6da3ff" href="https://bscscan.com/tx/' + hash + '">lihat di BscScan</a>';
+      refresh();
+    } catch (e) {
+      $("mintout").innerHTML = '<span class="bad">gagal: ' + (e.message || e) + "</span>";
+    }
+  }
+
+  $("connect").addEventListener("click", connect);
+  $("sign").addEventListener("click", function () { signVoucher().catch(function (e) { alert(e.message || e); }); });
+  $("verify").addEventListener("click", function () { verify().catch(function (e) { alert(e.message || e); }); });
+  $("mint").addEventListener("click", function () { mint().catch(function (e) { alert(e.message || e); }); });
+
+  if (window.ethereum) {
+    window.ethereum.on("accountsChanged", function (accs) {
+      account = accs[0] || null;
+      $("account").textContent = account ? short(account) : "belum tersambung";
+      $("mint").disabled = true;
+    });
+  }
+  refresh();
+})();
+</script>
+</body>
+</html>
